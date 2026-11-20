@@ -186,6 +186,7 @@ textarea[aria-invalid="true"] { border-color: #ffac99; }
 .rule-card li + li { margin-top: .22rem; }
 .rule-card li::marker { color: var(--grade, var(--muted)); }
 .general-rules { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); margin-top: 1rem; }
+.pool-rules { margin-top: 1rem; }
 .power {
   margin-top: .95rem; padding: .55rem .7rem; border-left: 3px solid var(--grade-b);
   background: #3b2b22; color: #ffd9b6; font-weight: 800;

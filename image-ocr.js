@@ -50,6 +50,13 @@
     return type.startsWith('image/');
   }
 
+  function cleanRecognizedText(text) {
+    return text.split(/\r\n|[\r\n]/)
+      .map(line => line.replace(/[^A-Za-z0-9]/g, ''))
+      .filter(Boolean)
+      .join('\n');
+  }
+
   async function recognizeImage(image) {
     if (!image || pickImage.disabled || !canRecognizeImage()) return;
     if (image.size > 16 * 1024 * 1024) {
@@ -69,6 +76,7 @@
       const initializationError = new Promise((resolve, reject) => {
         rejectInitialization = reject;
       });
+      // Recognize UI text and symbols before filtering so they are less likely to be read as English letters.
       const initialization = engine.createWorker(['chi_sim', 'eng'], engine.OEM.LSTM_ONLY, {
         workerPath: new URL('worker.min.js', vendor).href,
         corePath: vendor.href,
@@ -87,8 +95,7 @@
 
       const result = await worker.recognize(image);
       if (request !== requestNumber) return;
-      // Tesseract often inserts spaces between characters in a Chinese nickname.
-      const text = result.data.text.replace(/(\p{Script=Han})[^\S\r\n]+(?=\p{Script=Han})/gu, '$1').trim();
+      const text = cleanRecognizedText(result.data.text);
       if (!text) {
         imageStatus.textContent = '没有识别到文字。可以试试更清晰的截图，或裁出昵称所在区域。';
         return;
