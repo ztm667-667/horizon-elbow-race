@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="zh-CN" data-type="software">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="page-type" content="software">
+  <meta name="site-kind" content="gaming">
+  <meta name="theme-color" content="#121619">
+  <meta name="description" content="手动输入或从图片识别参赛名单，随机匹配队友和 A／B 级角色，奇数人数时另抽 S1 自由人。">
+  <meta property="og:title" content="地平线肘击赛 · 随机分组">
+  <meta property="og:description" content="随机匹配队友和 A／B 级角色，查看比赛规则与禁用车辆。">
+  <title>地平线肘击赛 · 随机分组</title>
+  <link rel="stylesheet" href="./race.css">
+</head>
+<body id="top">
+  <a class="skip" href="#draw">跳到随机分组</a>
+  <header>
+    <div class="wrap topbar">
+      <span class="brand"><span class="flag" aria-hidden="true"></span>地平线肘击赛</span>
+      <nav aria-label="页面导航">
+        <a href="#draw">随机分组</a>
+        <a href="#rules">比赛规则</a>
+        <a href="#vehicles">车辆限制</a>
+      </nav>
+    </div>
+  </header>
+  <main>
+    <section class="hero" aria-labelledby="title" data-enter>
+      <picture class="hero-media" aria-hidden="true" data-visual>
+        <source media="(max-width: 46rem)" srcset="./assets/race-hero-mobile.webp">
+        <img src="./assets/race-hero.webp" width="1536" height="1024" alt="" fetchpriority="high" data-source="illustration" data-subject="两台赛车驶过弯道">
+      </picture>
+      <div class="wrap hero-body">
+        <div class="hero-copy">
+          <h1 id="title">地平线<span>肘击赛</span></h1>
+          <p>两人一队。A 级护卫，B 级冲线。</p>
+        </div>
+      </div>
+      <div class="finish-line" aria-hidden="true"></div>
+    </section>
+
+    <section id="draw" class="wrap draw-section" aria-label="随机分组">
+      <div class="draw-grid">
+        <div class="draw-panel">
+          <form id="draw-form" autocomplete="off">
+            <div class="field-top">
+              <h2 id="roster-title">参赛名单</h2>
+              <span class="count" id="count">0 人</span>
+            </div>
+            <p class="help" id="name-help">手动输入、粘贴或识别图片，每行一位玩家。奇数人数时随机抽出一名 S1 自由人。</p>
+            <textarea id="names" rows="5" autocomplete="off" spellcheck="false" placeholder="输入昵称，或直接粘贴文字和截图" aria-labelledby="roster-title" aria-describedby="name-help error"></textarea>
+            <div class="image-tools">
+              <button id="paste-image" class="button" type="button" aria-controls="ocr-review" title="也可按 Ctrl+V 或 ⌘V 粘贴截图">粘贴图片</button>
+              <button id="pick-image" class="button" type="button" aria-controls="ocr-review">选择图片</button>
+              <input id="image" type="file" accept="image/png,image/jpeg,image/webp,image/bmp" hidden>
+              <p id="image-status" role="status"></p>
+            </div>
+            <div id="ocr-review" class="ocr-review" hidden>
+              <label for="ocr-text">识别出的文字</label>
+              <p id="ocr-help" class="help">请核对昵称、删除无关文字，每行保留一位玩家。</p>
+              <textarea id="ocr-text" rows="3" autocomplete="off" spellcheck="false" aria-describedby="ocr-help"></textarea>
+              <div class="ocr-actions">
+                <button id="import-names" class="button" type="button">追加到名单</button>
+                <button id="discard-text" class="button" type="button">取消</button>
+              </div>
+            </div>
+            <p class="error" id="error" role="alert" hidden></p>
+            <button id="draw-button" type="submit" class="button primary">随机分组</button>
+            <p class="privacy">每次重新抽签。图片、名单和结果仅在当前浏览器处理，不保存、不上传。</p>
+          </form>
+        </div>
+        <div class="draw-panel">
+          <div class="result-top">
+            <h2 id="result-title" tabindex="-1">分组结果</h2>
+            <button id="copy" class="button" type="button" hidden>复制结果</button>
+          </div>
+          <p id="draw-status" class="draw-status" role="status"></p>
+          <p id="copy-feedback" class="copy-feedback" role="status"></p>
+          <div id="empty" class="empty">
+            <span class="flag" aria-hidden="true"></span>
+            <p>抽签后，这里会显示每组的 A／B 级车手。</p>
+          </div>
+          <ol id="groups" class="groups" aria-label="本轮小组" hidden></ol>
+          <div id="free-agent" class="groups" hidden></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="details" id="rules" aria-labelledby="rules-title">
+      <div class="wrap">
+        <h2 id="rules-title">比赛规则</h2>
+        <div class="finish-rule">
+          <span class="flag" aria-hidden="true"></span>
+          <div>
+            <strong>最先冲线的 B 级车为本组赢得比赛。</strong>
+            <p>最终排名只看 B 级车的名次，A 级车成绩不计入胜负。</p>
+          </div>
+        </div>
+        <div class="rule-grid">
+          <article class="rule-card" data-grade="a">
+            <h3><span class="role">A 级</span> 护卫车</h3>
+            <ul>
+              <li>保护己方 B 级车，为它创造领先机会。</li>
+              <li>可以拦截其他组 B 级车，并与其他组 A 级车对抗。</li>
+              <li>可以主动撞击、卡位、防守和干扰。</li>
+            </ul>
+          </article>
+          <article class="rule-card" data-grade="b">
+            <h3><span class="role role-b">B 级</span> 冲线车</h3>
+            <ul>
+              <li>尽可能保持速度，避开其他组的拦截。</li>
+              <li>配合己方 A 级车，争取最先冲过终点。</li>
+            </ul>
+          </article>
+        </div>
+        <div class="general-rules">
+          <article class="rule-card" data-grade="s">
+            <h3><span class="role role-s">S1</span> 自由人</h3>
+            <p>参赛人数为奇数时，随机抽出一人担任自由人，驾驶 S1 级车。自由人只能肘击当前排名第一的 B 级车。</p>
+          </article>
+          <article class="rule-card">
+            <h3>赛场通用规则</h3>
+            <ol>
+              <li>允许鱼雷、撞击、卡位和防守。</li>
+              <li>禁止利用 BUG 或恶意卡加载点。</li>
+              <li>默认遵守游戏机制。</li>
+            </ol>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="details" id="vehicles" aria-labelledby="vehicles-title">
+      <div class="wrap">
+        <h2 id="vehicles-title">车辆限制</h2>
+        <div class="vehicle-grid">
+          <article class="rule-card" data-grade="a">
+            <h3><span class="role">A 级</span> 禁用车辆</h3>
+            <ul>
+              <li>2005 年后皮卡 &amp; 4x4</li>
+              <li>Dodge Daytona HEMI</li>
+              <li>Ford GT 2005</li>
+              <li>Ford F450 FE</li>
+            </ul>
+          </article>
+          <article class="rule-card" data-grade="b">
+            <h3><span class="role role-b">B 级</span> 禁用车辆</h3>
+            <ul>
+              <li>PEEL P50</li>
+              <li>宝马 Isetta（宝马蛋）</li>
+              <li>Ginetta G40</li>
+              <li>Honda Beat</li>
+              <li>Dodge Daytona HEMI</li>
+              <li>Nissan 240SX</li>
+              <li>Ford F450 FE</li>
+            </ul>
+            <p class="power">B 级动力限制：738 kW 以下</p>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer><div class="wrap"><span>地平线肘击赛</span><a href="#top">返回顶部</a></div></footer>
+
+  <script>
+    const form = document.querySelector('#draw-form');
+    const namesField = document.querySelector('#names');
+    const count = document.querySelector('#count');
+    const error = document.querySelector('#error');
+    const drawButton = document.querySelector('#draw-button');
+    const status = document.querySelector('#draw-status');
+    const groups = document.querySelector('#groups');
+    const empty = document.querySelector('#empty');
+    const freeAgent = document.querySelector('#free-agent');
+    const copyButton = document.querySelector('#copy');
+    const copyFeedback = document.querySelector('#copy-feedback');
+    const freeAgentRule = '只能肘击当前第一名的 B 级车';
+    const randomSample = new Uint32Array(1);
+    let resultText = '';
+
+    function readNames() {
+      return namesField.value.split(/\r\n|[\n\r]/).map(line => line.trim()).filter(Boolean);
+    }
+
+    // Reject the excess values so each index is equally likely.
+    function randomIndex(length) {
+      const range = 2 ** 32;
+      const cutoff = range - range % length;
+      do {
+        crypto.getRandomValues(randomSample);
+      } while (randomSample[0] >= cutoff);
+      return randomSample[0] % length;
+    }
+
+    function shuffle(names) {
+      for (let i = names.length - 1; i > 0; i--) {
+        const j = randomIndex(i + 1);
+        [names[i], names[j]] = [names[j], names[i]];
+      }
+      return names;
+    }
+
+    function element(tag, className, content) {
+      const node = document.createElement(tag);
+      node.className = className;
+      if (content !== undefined) node.textContent = content;
+      return node;
+    }
+
+    function driver(label, roleClass, name) {
+      const row = element('div', 'driver');
+      row.append(element('span', 'role ' + roleClass, label), element('bdi', 'driver-name', name));
+      return row;
+    }
+
+    function resetResult() {
+      groups.replaceChildren();
+      freeAgent.replaceChildren();
+      groups.hidden = freeAgent.hidden = copyButton.hidden = true;
+      empty.hidden = false;
+      status.textContent = copyFeedback.textContent = '';
+      drawButton.textContent = '随机分组';
+      resultText = '';
+    }
+
+    function clearError() {
+      error.hidden = true;
+      error.textContent = '';
+      namesField.removeAttribute('aria-invalid');
+    }
+
+    function showError(message) {
+      resetResult();
+      error.hidden = false;
+      error.textContent = message;
+      namesField.setAttribute('aria-invalid', 'true');
+      namesField.focus();
+    }
+
+    namesField.addEventListener('input', () => {
+      clearError();
+      if (resultText) resetResult();
+      count.textContent = readNames().length + ' 人';
+    });
+
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      clearError();
+      const names = readNames();
+      if (names.length < 2) {
+        showError('请输入至少两位玩家的昵称。');
+        return;
+      }
+      const seen = new Set();
+      for (const name of names) {
+        if (seen.has(name)) {
+          showError('昵称「' + name + '」重复了。同名玩家可以加上编号区分。');
+          return;
+        }
+        seen.add(name);
+      }
+
+      resetResult();
+      shuffle(names);
+      const solo = names.length % 2 ? names.pop() : null;
+      const groupCount = names.length / 2;
+      const cards = document.createDocumentFragment();
+      const lines = ['地平线肘击赛 · 本轮分组'];
+      for (let i = 0; i < groupCount; i++) {
+        const a = names[i * 2];
+        const b = names[i * 2 + 1];
+        const title = '第 ' + (i + 1) + ' 组';
+        const card = element('li', 'group');
+        const slots = element('div', 'slots');
+        slots.append(driver('A 级护卫', '', a), driver('B 级冲线', 'role-b', b));
+        card.append(element('h3', '', title), slots);
+        cards.append(card);
+        lines.push(title + '｜A 级 ' + a + '｜B 级 ' + b);
+      }
+      groups.append(cards);
+      groups.hidden = false;
+      if (solo !== null) {
+        const card = element('article', 'group');
+        card.append(driver('S1 自由人', 'role-s', solo), element('p', 'free-note', freeAgentRule + '。'));
+        freeAgent.append(card);
+        freeAgent.hidden = false;
+        lines.push('S1 自由人｜' + solo + '（' + freeAgentRule + '）');
+      }
+      resultText = lines.join('\n');
+      status.textContent = '已抽出 ' + groupCount + ' 组' + (solo === null ? '。' : '，另有 1 名 S1 自由人。');
+      empty.hidden = true;
+      copyButton.hidden = false;
+      drawButton.textContent = '重新抽签';
+    });
+
+    copyButton.addEventListener('click', async () => {
+      const currentText = resultText;
+      try {
+        await navigator.clipboard.writeText(currentText);
+      } catch {
+        const clipboard = element('textarea', 'clipboard');
+        clipboard.setAttribute('aria-label', '本轮分组');
+        clipboard.readOnly = true;
+        clipboard.value = currentText;
+        document.body.append(clipboard);
+        clipboard.select();
+        clipboard.setSelectionRange(0, clipboard.value.length);
+        let copied = false;
+        try {
+          copied = document.execCommand('copy');
+        } catch {
+          // The results remain on screen for manual selection.
+        } finally {
+          clipboard.remove();
+          if (!copyButton.hidden) copyButton.focus();
+        }
+        if (!copied) {
+          copyFeedback.textContent = '浏览器未允许复制，请手动选中结果复制。';
+          return;
+        }
+      }
+      if (currentText === resultText) copyFeedback.textContent = '已复制本轮分组。';
+    });
+
+    // A back/forward cache restore should not retain a previous race draw.
+    window.addEventListener('pagehide', () => {
+      namesField.value = '';
+      count.textContent = '0 人';
+      clearError();
+      resetResult();
+    });
+  </script>
+  <script src="./image-ocr.js" defer></script>
+</body>
+</html>
