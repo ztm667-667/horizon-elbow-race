@@ -127,12 +127,10 @@
             </ol>
           </article>
         </div>
-        <article class="rule-card pool-rules">
-          <h3>高低池分组</h3>
-          <p>高池名单：<span id="high-pool-list"></span>。包含高池昵称的输入算同一位高池玩家，识别时忽略大小写、空格和装饰符号。其余参赛者为低池。</p>
+        <article class="rule-card draw-rules">
+          <h3>抽签规则</h3>
           <ul>
-            <li>两人一组，高池不能同组。每名参与组队的高池车手都与一名低池车手配对。</li>
-            <li>奇数人数时，所有符合条件的人等概率成为 S1 自由人。yanyuan6530 和 mang guo4731 除外。抽出自由人后仍须能完成合法配对。</li>
+            <li>两人一组。奇数人数时，每位符合条件的人等概率成为 S1 自由人。</li>
             <li>优先避开同一浏览器 12 小时内的旧配对。若本轮无法完全避开，重逢的两人按上一次的 A／B 角色互换。</li>
           </ul>
         </article>
@@ -185,7 +183,6 @@
     const copyButton = document.querySelector('#copy');
     const copyFeedback = document.querySelector('#copy-feedback');
     const freeAgentRule = '只能肘击当前第一名的 B 级车';
-    document.querySelector('#high-pool-list').textContent = RaceDraw.highPool.join('、');
     let resultText = '';
 
     function readNames() {

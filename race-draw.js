@@ -42,7 +42,6 @@ const RaceDraw = (() => {
 
   function eligibleSolo(names, highCount, lowCount) {
     return names.filter(name => {
-      if (cannotSolo.has(playerKey(name))) return false;
       return isHigh(name) ? highCount - 1 <= lowCount : highCount <= lowCount - 1;
     });
   }
@@ -164,7 +163,7 @@ const RaceDraw = (() => {
     return match.includes(-1) ? null : match;
   }
 
-  function matchRoster(names, history) {
+  function matchRoster(names, history, enforcePools) {
     const players = shuffled(names);
     const keys = players.map(playerKey);
     const graph = players.map(() => []);
@@ -176,7 +175,7 @@ const RaceDraw = (() => {
 
     for (let a = 0; a < players.length; a++) {
       for (let b = a + 1; b < players.length; b++) {
-        if (highKeys.has(keys[a]) && highKeys.has(keys[b])) continue;
+        if (enforcePools && highKeys.has(keys[a]) && highKeys.has(keys[b])) continue;
         const previous = history.get(pairKey(keys[a], keys[b]));
         if (previous) repeats.push({a, b, time: previous[2]});
         else addEdge(a, b);
@@ -211,21 +210,18 @@ const RaceDraw = (() => {
   function draw(names, now = Date.now()) {
     const highCount = names.filter(isHigh).length;
     const lowCount = names.length - highCount;
+    let enforcePools = highCount <= lowCount;
     let solo = null;
     if (names.length % 2) {
-      const eligible = eligibleSolo(names, highCount, lowCount);
-      if (!eligible.length) {
-        const error = highCount - 1 > lowCount
-          ? '低池人数不足，无法避免两名高池玩家同组。请增加低池玩家或调整名单。'
-          : '没有符合条件的 S1 自由人。请调整名单后再抽签。';
-        return {error};
-      }
-      solo = eligible[randomIndex(eligible.length)];
-    } else if (highCount > lowCount) {
-      return {error: '低池人数不足，无法避免两名高池玩家同组。请增加低池玩家或调整名单。'};
+      const eligible = names.filter(name => !cannotSolo.has(playerKey(name)));
+      if (!eligible.length) return {error: '没有符合条件的 S1 自由人。请调整名单后再抽签。'};
+      const balanced = eligibleSolo(eligible, highCount, lowCount);
+      enforcePools = balanced.length > 0;
+      const candidates = enforcePools ? balanced : eligible;
+      solo = candidates[randomIndex(candidates.length)];
     }
     const history = readHistory(now);
-    const pairs = matchRoster(names.filter(name => name !== solo), history);
+    const pairs = matchRoster(names.filter(name => name !== solo), history, enforcePools);
     for (const {a, b} of pairs) {
       const aKey = playerKey(a);
       const bKey = playerKey(b);
@@ -236,5 +232,5 @@ const RaceDraw = (() => {
   }
 
   writeHistory(readHistory(Date.now()));
-  return {draw, highPool, playerKey, cleanName};
+  return {draw, playerKey, cleanName};
 })();
