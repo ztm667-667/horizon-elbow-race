@@ -119,12 +119,7 @@ textarea[aria-invalid="true"] { border-color: #ffac99; }
 .primary { color: #171b1e; background: var(--accent); border-color: var(--accent); }
 .primary:hover { background: #ff875b; border-color: #ff875b; }
 #draw-button { width: 100%; margin-top: .88rem; }
-.race-guide {
-  min-height: 2.75rem; margin-top: .78rem; padding: .35rem .7rem;
-  border-color: #ba694a; background: var(--field); text-decoration: none;
-}
-.race-guide:hover { border-color: #ffab89; background: #2d221e; transform: translateY(-2px); }
-.race-guide:active { transform: translateY(1px) scale(.985); }
+.race-guide { margin-top: .78rem; text-decoration: none; }
 .guide-source {
   padding-right: .65rem; border-right: 1px solid #815444;
   color: #ffab89; font-size: .82rem; white-space: nowrap;
