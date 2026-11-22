@@ -10,6 +10,18 @@
   <meta property="og:title" content="地平线肘击赛 · 随机分组">
   <meta property="og:description" content="随机匹配队友和 A／B 级角色，查看比赛规则与禁用车辆。">
   <title>地平线肘击赛 · 随机分组</title>
+  <script>
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    // Older navigation links may already have left a section in the shared URL.
+    if (['#top', '#draw', '#rules', '#vehicles'].includes(location.hash)) {
+      const entryUrl = new URL(location.href);
+      entryUrl.hash = '';
+      history.replaceState(history.state, '', entryUrl);
+    }
+    window.addEventListener('pageshow', event => {
+      if (event.persisted && !location.hash) window.scrollTo({top: 0, behavior: 'instant'});
+    });
+  </script>
   <link rel="stylesheet" href="./race.css">
 </head>
 <body id="top">
@@ -171,6 +183,18 @@
 
   <script src="./race-draw.js"></script>
   <script>
+    for (const link of document.querySelectorAll('a[href^="#"]')) {
+      const section = document.getElementById(link.hash.slice(1));
+      if (!section) continue;
+      link.addEventListener('click', event => {
+        if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        section.tabIndex = -1;
+        section.focus({preventScroll: true});
+        section.scrollIntoView({block: 'start'});
+      });
+    }
+
     const form = document.querySelector('#draw-form');
     const namesField = document.querySelector('#names');
     const count = document.querySelector('#count');
