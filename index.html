@@ -64,6 +64,7 @@
             <div class="image-tools">
               <button id="paste-image" class="button" type="button" aria-controls="ocr-review" title="也可按 Ctrl+V 或 ⌘V 粘贴截图">粘贴图片</button>
               <button id="pick-image" class="button" type="button" aria-controls="ocr-review">选择图片</button>
+              <button id="cancel-recognition" class="button" type="button" hidden>取消识别</button>
               <input id="image" type="file" accept="image/png,image/jpeg,image/webp,image/bmp" hidden>
               <p id="image-status" role="status"></p>
             </div>
@@ -349,6 +350,6 @@
       resetResult();
     });
   </script>
-  <script src="./image-ocr.js" defer></script>
+  <script src="./image-ocr.js?v=2" defer></script>
 </body>
 </html>

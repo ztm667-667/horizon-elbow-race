@@ -2,6 +2,7 @@
   const imageInput = document.querySelector('#image');
   const pickImage = document.querySelector('#pick-image');
   const pasteImage = document.querySelector('#paste-image');
+  const cancelButton = document.querySelector('#cancel-recognition');
   const imageStatus = document.querySelector('#image-status');
   const review = document.querySelector('#ocr-review');
   const recognizedText = document.querySelector('#ocr-text');
@@ -9,17 +10,29 @@
   const vendor = new URL('./ocr/', window.location.href);
   let loadEngine;
   let requestNumber = 0;
+  let cancelRecognition;
 
   function getEngine() {
+    if (typeof window.Tesseract?.createWorker === 'function') return Promise.resolve(window.Tesseract);
     if (!loadEngine) {
       loadEngine = new Promise((resolve, reject) => {
         const script = document.createElement('script');
         script.src = new URL('tesseract.min.js', vendor).href;
-        script.onload = () => resolve(window.Tesseract);
-        script.onerror = () => {
+        function fail(error) {
+          clearTimeout(timer);
           script.remove();
-          reject(new Error('无法加载识别引擎'));
+          reject(error);
+        }
+        const timer = setTimeout(() => fail(new DOMException('识别引擎加载超时', 'TimeoutError')), 25_000);
+        script.onload = () => {
+          if (typeof window.Tesseract?.createWorker !== 'function') {
+            fail(new Error('识别引擎未初始化'));
+            return;
+          }
+          clearTimeout(timer);
+          resolve(window.Tesseract);
         };
+        script.onerror = () => fail(new Error('无法加载识别引擎'));
         document.head.append(script);
       }).catch(error => {
         loadEngine = null;
@@ -57,6 +70,10 @@
       .join('\n');
   }
 
+  function terminateWorker(worker) {
+    if (worker) void worker.terminate().catch(() => {});
+  }
+
   async function recognizeImage(image) {
     if (!image || pickImage.disabled || !canRecognizeImage()) return;
     if (image.size > 16 * 1024 * 1024) {
@@ -65,17 +82,26 @@
     }
 
     const request = ++requestNumber;
+    let stopped = false;
     let worker;
+    let interrupt;
+    const interruption = new Promise((_, reject) => {
+      interrupt = error => {
+        stopped = true;
+        reject(error);
+      };
+    });
+    const isCurrent = () => request === requestNumber && !stopped;
+    const deadline = setTimeout(() => interrupt(new DOMException('识别超时', 'TimeoutError')), 75_000);
+    cancelRecognition = () => interrupt(new DOMException('取消识别', 'AbortError'));
     clearReview();
     setImageBusy(true);
+    if (cancelButton) cancelButton.hidden = false;
     imageStatus.textContent = '正在加载识别引擎…';
-    try {
+    async function recognize() {
       const engine = await getEngine();
-      if (request !== requestNumber) return;
-      let rejectInitialization;
-      const initializationError = new Promise((resolve, reject) => {
-        rejectInitialization = reject;
-      });
+      if (!isCurrent()) return;
+      imageStatus.textContent = '正在加载识别模型…';
       // Recognize UI text and symbols before filtering so they are less likely to be read as English letters.
       const initialization = engine.createWorker(['chi_sim', 'eng'], engine.OEM.LSTM_ONLY, {
         workerPath: new URL('worker.min.js', vendor).href,
@@ -83,18 +109,29 @@
         langPath: new URL('models', vendor).href,
         workerBlobURL: false,
         cacheMethod: 'none',
-        errorHandler: message => rejectInitialization(new Error(String(message))),
+        errorHandler: message => interrupt(new Error(String(message))),
         logger: message => {
-          if (request === requestNumber && message.status === 'recognizing text') {
+          if (isCurrent() && message.status === 'recognizing text') {
             imageStatus.textContent = '正在识别… ' + Math.round(message.progress * 100) + '%';
           }
         }
       });
-      worker = await Promise.race([initialization, initializationError]);
-      if (request !== requestNumber) return;
+      const initialized = await initialization;
+      if (!isCurrent()) {
+        terminateWorker(initialized);
+        return;
+      }
+      worker = initialized;
+      const workerFailed = () => interrupt(new Error('识别进程已停止'));
+      worker.worker?.addEventListener('error', workerFailed, {once: true});
+      worker.worker?.addEventListener('messageerror', workerFailed, {once: true});
+      imageStatus.textContent = '正在识别文字…';
+      return worker.recognize(image);
+    }
 
-      const result = await worker.recognize(image);
-      if (request !== requestNumber) return;
+    try {
+      const result = await Promise.race([recognize(), interruption]);
+      if (!isCurrent() || !result) return;
       const text = cleanRecognizedText(result.data.text);
       if (!text) {
         imageStatus.textContent = '没有识别到文字。可以试试更清晰的截图，或裁出昵称所在区域。';
@@ -104,15 +141,28 @@
       review.hidden = false;
       imageStatus.textContent = '识别完成，请先核对。';
       if (document.activeElement === document.body) recognizedText.focus({preventScroll: true});
-    } catch {
+    } catch (error) {
       if (request === requestNumber) {
-        imageStatus.textContent = '图片识别失败。请换一张清晰的 PNG、JPG 或 WebP 图片重试。';
+        if (error?.name === 'AbortError') imageStatus.textContent = '已取消识别，可以重新选择图片。';
+        else if (error?.name === 'TimeoutError') imageStatus.textContent = '识别超时。请裁出昵称区域后重试，也可以手动输入名单。';
+        else imageStatus.textContent = '图片识别失败。请换一张清晰的 PNG、JPG 或 WebP 图片重试。';
       }
     } finally {
-      if (request === requestNumber) setImageBusy(false);
-      if (worker) await worker.terminate().catch(() => {});
+      clearTimeout(deadline);
+      stopped = true;
+      terminateWorker(worker);
+      if (request === requestNumber) {
+        cancelRecognition = undefined;
+        setImageBusy(false);
+        if (cancelButton) {
+          if (document.activeElement === cancelButton) pickImage.focus({preventScroll: true});
+          cancelButton.hidden = true;
+        }
+      }
     }
   }
+
+  cancelButton?.addEventListener('click', () => cancelRecognition?.());
 
   pickImage.addEventListener('click', () => {
     if (canRecognizeImage()) imageInput.click();
@@ -187,11 +237,18 @@
     pickImage.focus();
   });
 
-  window.addEventListener('pagehide', () => {
+  function resetImageState() {
     requestNumber++;
+    cancelRecognition?.();
+    cancelRecognition = undefined;
+    if (cancelButton) cancelButton.hidden = true;
     imageInput.value = '';
     setImageBusy(false);
     imageStatus.textContent = '';
     clearReview();
+  }
+  window.addEventListener('pagehide', resetImageState);
+  window.addEventListener('pageshow', event => {
+    if (event.persisted) resetImageState();
   });
 })();
