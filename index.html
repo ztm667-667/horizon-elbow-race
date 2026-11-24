@@ -67,7 +67,6 @@
             <p class="help" id="name-help">手动输入、粘贴或识别图片，每行一位玩家。奇数人数时随机抽出一名 S1 自由人。</p>
             <textarea id="names" rows="5" autocomplete="off" spellcheck="false" placeholder="输入昵称，或直接粘贴文字和截图" aria-labelledby="roster-title" aria-describedby="name-help error"></textarea>
             <div class="image-tools">
-              <button id="paste-image" class="button" type="button" aria-controls="ocr-review" title="也可按 Ctrl+V 或 ⌘V 粘贴截图">粘贴图片</button>
               <button id="pick-image" class="button" type="button" aria-controls="ocr-review">选择图片</button>
               <button id="cancel-recognition" class="button" type="button" hidden>取消识别</button>
               <input id="image" type="file" accept="image/png,image/jpeg,image/webp,image/bmp" hidden>
@@ -75,7 +74,7 @@
             </div>
             <div id="ocr-review" class="ocr-review" hidden>
               <label for="ocr-text">识别出的文字</label>
-              <p id="ocr-help" class="help">识别只保留英文字母和数字。请核对昵称，每行保留一位玩家。</p>
+              <p id="ocr-help" class="help">识别保留英文字母、数字和昵称内的空格。请对照截图核对，每行一位玩家。</p>
               <textarea id="ocr-text" rows="3" autocomplete="off" spellcheck="false" aria-describedby="ocr-help"></textarea>
               <div class="ocr-actions">
                 <button id="import-names" class="button" type="button">追加到名单</button>
@@ -356,6 +355,7 @@
       resetResult();
     });
   </script>
-  <script src="./image-ocr.js?v=2" defer></script>
+  <script src="./general-ocr.js" defer></script>
+  <script src="./image-ocr.js?v=5" defer></script>
 </body>
 </html>
